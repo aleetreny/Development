@@ -1,4 +1,4 @@
-# Lumina Fashion AI 🛍️✨
+# Lumina (Chatbot)
 
 **A Next-Generation Semantic Search E-Commerce Experience.**
 
@@ -11,7 +11,7 @@ Lumina is a Single Page Application (SPA) that replaces traditional e-commerce f
 
 ---
 
-## 🎯 Purpose & Vision
+##  Purpose & Vision
 
 Traditional e-commerce search is rigid (e.g., filters for "Color: Red", "Category: Dress"). **Lumina** bridges the gap between human language and database inventory.
 
@@ -22,7 +22,7 @@ Instead of keywords, it understands **intent**:
 
 ---
 
-## ⚙️ Technical Architecture
+##  Technical Architecture
 
 Lumina operates on a **Frontend-First AI Architecture**. There is no complex backend; the logic resides in the client, orchestrated by LLM reasoning.
 
@@ -51,7 +51,7 @@ The system intercepts AI responses to prevent "hallucinations":
 
 ---
 
-## ⚠️ Data Disclaimer
+##  Data Disclaimer
 
 **Please Note:** The product database used in this demo is entirely **synthetic**. 
 *   The inventory consists of randomized data points to demonstrate the search capability.
@@ -60,7 +60,7 @@ The system intercepts AI responses to prevent "hallucinations":
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
 *   **Sticky Context:** If you ask for "A t-shirt" and then say "Actually, in red", Lumina knows you still want a t-shirt.
 *   **Gender Persistence:** Once you declare "I am a man", Lumina filters all future results by gender until told otherwise.
@@ -70,7 +70,7 @@ The system intercepts AI responses to prevent "hallucinations":
 
 ---
 
-## 🛠️ Installation & Setup
+##  Installation & Setup
 
 1.  **Clone the repository:**
     ```bash
@@ -96,7 +96,7 @@ The system intercepts AI responses to prevent "hallucinations":
 
 ---
 
-## 🧪 Demo Scenarios (How to test it)
+##  Demo Scenarios (How to test it)
 
 1.  **The Context Test:**
     *   User: *"I'm looking for a dress for a wedding."*
@@ -117,7 +117,7 @@ The system intercepts AI responses to prevent "hallucinations":
 
 ---
 
-## 📄 License
+##  License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
