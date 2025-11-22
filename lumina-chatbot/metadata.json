@@ -1,0 +1,5 @@
+{
+  "name": "Lumina Fashion AI",
+  "description": "A high-performance semantic search e-commerce demo using Gemini 2.5 to interpret natural language queries and retrieve fashion items via a weighted scoring system.",
+  "requestFramePermissions": []
+}
