@@ -25,4 +25,4 @@ This collection houses my **Software Engineering** and **Full-Stack Application*
 To demonstrate versatility in translating complex logic and AI capabilities into tangible, polished, and high-performance software products.
 
 ---
-*Looking for my Data Science & ML models? Check out my [Data_Science_Ecosystem](#).*
+*Looking for my Data Science & ML models? Check out my Data_Science_Ecosystem.*
