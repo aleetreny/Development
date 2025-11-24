@@ -1,5 +1,0 @@
-{
-  "name": "Gravity Lens Simulator",
-  "description": "An interactive physics visualization combining Newtonian mechanics for particle movement and geometrical distortion to simulate gravitational lensing.",
-  "requestFramePermissions": []
-}
