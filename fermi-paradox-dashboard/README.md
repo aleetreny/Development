@@ -90,11 +90,5 @@ It analyzes your specific scenario (e.g., "High life probability, Extremely shor
     npm start
     ```
 
-## 6. CREDITS
-
-**Architect**: Senior Astrophysics Professor & Frontend Engineer.
-**Tech Stack**: React 19, TailwindCSS, HTML5 Canvas, Google GenAI SDK.
-**License**: MIT.
-
 ---
 *“Two possibilities exist: either we are alone in the Universe or we are not. Both are equally terrifying.” — Arthur C. Clarke*
