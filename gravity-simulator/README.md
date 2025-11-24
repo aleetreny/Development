@@ -23,9 +23,9 @@ $$\vec{F} = G \frac{M \cdot m}{r^2} \hat{r}$$
 ### 2. Numerical Integration (Semi-Implicit Euler)
 The simulation advances time using the Semi-Implicit Euler method (also known as Symplectic Euler).
 
-* **Step 1 (Velocity):** $\vec{v}_{t+1} = \vec{v}_t + \vec{a}(\vec{r}_t) \cdot \Delta t$
-* **Step 2 (Position):** $\vec{r}_{t+1} = \vec{r}_t + \vec{v}_{t+1} \cdot \Delta t$
-
+* **Step 1 (Velocity):** `v(t+1) = v(t) + a(t) * dt`
+* **Step 2 (Position):** `r(t+1) = r(t) + v(t+1) * dt`
+  
 **Trade-off:** While less precise than Runge-Kutta 4 (RK4) or Velocity Verlet regarding energy conservation over hours of simulation, Symplectic Euler is exceptionally fast and stable enough for real-time visual usage.
 
 ---
@@ -73,8 +73,8 @@ The simulation is designed to be a "toy" for exploration.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/gravity-lens-simulator.git](https://github.com/your-username/gravity-lens-simulator.git)
-    cd gravity-lens-simulator
+    git clone [https://github.com/your-username/gravity-simulator.git](https://github.com/your-username/gravity-simulator.git)
+    cd gravity-simulator
     ```
 
 2.  **Install dependencies:**
