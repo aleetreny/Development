@@ -1,6 +1,6 @@
-# RED-SHIFT ARCHITECT // SYSTEM_V.666
+# RED-SHIFT ARCHITECT
 
-## [ CLASSIFIED TERMINAL ACCESS ]
+## [ DESCRIPTION ]
 
 Red-Shift Architect is a deterministic procedural generation engine designed to catalogue the infinite anomalies of the outer rim. It combines raw mathematical pixel rendering with advanced neural synthesis to create collectible, low-fidelity exoplanet artifacts.
 
@@ -67,6 +67,3 @@ Successfully scanned planets can be downloaded as .PNG artifacts. These files ar
 - TypeScript
 - HTML5 Canvas API (Procedural Rendering)
 - Tailwind CSS
-- Google GenAI SDK
-
-// END OF TRANSMISSION
