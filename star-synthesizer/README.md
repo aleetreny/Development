@@ -1,17 +1,17 @@
-# Star Synthesizer 🌟🎵
+# Star Synthesizer 
 
 **An interactive audio-visual experiment exploring the sonification of stellar astrophysics.**
 
 The **Star Synthesizer** is a web-based application that allows users to generate and manipulate a star in real-time. By adjusting fundamental astrophysical parameters—Temperature, Mass, Metallicity, and Age—the application renders a scientifically inspired visual representation on an HTML5 Canvas and generates a corresponding soundscape using the Web Audio API.
 
-## ✨ Features
+##  Features
 
 *   **Real-time Visualization:** High-performance HTML5 Canvas rendering of stellar bodies, including coronal glow, core color (based on Kelvin temperature), and stellar wind particle systems.
 *   **Procedural Audio Engine:** A robust synthesizer built with the native Web Audio API that generates sound in real-time without using pre-recorded samples.
 *   **Data Sonification:** Each visual and physical parameter maps directly to specific audio synthesis techniques, grounded in scientific analogies.
 *   **Sci-Fi UI:** A responsive, "dashboard-style" interface with real-time data feedback.
 
-## 🔬 The Science Behind the Sound
+##  The Science Behind the Sound
 
 This project uses **Data Sonification** to translate physical properties into audible characteristics:
 
@@ -41,7 +41,7 @@ This project uses **Data Sonification** to translate physical properties into au
     *   *Middle:* Silence/Stability.
     *   *Old:* Slow, deep, heavy breathing/pulsation.
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 *   **Framework:** React 19
 *   **Styling:** Tailwind CSS
@@ -49,7 +49,7 @@ This project uses **Data Sonification** to translate physical properties into au
 *   **Graphics:** Native HTML5 Canvas API (2D Context).
 *   **Icons:** Lucide React.
 
-## 🎛️ Controls
+##  Controls
 
 1.  **Initialize Audio:** Click the button in the header or the center overlay to start the Audio Context (browser requirement).
 2.  **Temperature Slider:** Changes color from Red to Blue and pitch from Low to High.
@@ -60,7 +60,7 @@ This project uses **Data Sonification** to translate physical properties into au
     *   *Center (5 Ga):* Stable, steady tone.
     *   *Right (8-13 Ga):* Slow, rhythmic pulsing.
 
-## 🚀 Running the Project
+##  Running the Project
 
 1.  Ensure you have Node.js installed.
 2.  Install dependencies (if applicable):
@@ -71,7 +71,3 @@ This project uses **Data Sonification** to translate physical properties into au
     ```bash
     npm start
     ```
-
----
-
-*Concept and implementation by a Creative Software Engineer specializing in Web Audio and Canvas interactions.*
