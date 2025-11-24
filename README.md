@@ -1,6 +1,6 @@
 # Interactive GenAI & Physics Experiments
 
-A collection of high-performance web applications exploring the intersection of Generative AI, Astrophysics, and Interactive UI Design. This monorepo contains experiments built primarily with React 19, TypeScript, and the HTML5 Canvas API, powered by Google Gemini 2.5 Flash.
+A collection of high-performance web applications exploring the intersection of Generative AI, Astrophysics, and Interactive UI Design. This monorepo contains experiments built primarily with React 19, TypeScript, and the HTML5 Canvas API.
 
 ---
 
