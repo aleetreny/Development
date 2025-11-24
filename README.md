@@ -1,28 +1,83 @@
-#  Development Portfolio
+# Interactive GenAI & Physics Experiments
 
-Welcome to my **Development** repository.
-
-This collection houses my **Software Engineering** and **Full-Stack Application** projects. While my Data Science work focuses on analysis, modeling, and statistical research, the projects here demonstrate my ability to build robust, user-facing applications, integrate APIs, and design modern architectures.
-
-##  Projects
-
-###  [Lumina Fashion AI](./lumina-fashion-ai)
-**Next-Gen Semantic Search for E-Commerce.**
-*   **Tech Stack:** React 18, TypeScript, Tailwind CSS, Google Gemini API.
-*   **Key Features:** Conversational AI search, weighted scoring algorithms, sticky context memory, and deterministic AI image generation.
-*   **Concept:** Replaces traditional filters with an intelligent AI stylist that understands complex natural language queries.
-
-*(More projects coming soon)*
-
-##  Tech Stack & Focus
-
-*   **Frontend:** React, TypeScript, Modern CSS (Tailwind).
-*   **AI Integration:** LLM Orchestration, Prompt Engineering, RAG (Retrieval-Augmented Generation) concepts.
-*   **Architecture:** Clean Code, SPAs, Component-based design.
-
-##  Objective
-
-To demonstrate versatility in translating complex logic and AI capabilities into tangible, polished, and high-performance software products.
+A collection of high-performance web applications exploring the intersection of Generative AI, Astrophysics, and Interactive UI Design. This monorepo contains experiments built primarily with React 19, TypeScript, and the HTML5 Canvas API, powered by Google Gemini 2.5 Flash.
 
 ---
-*Looking for my Data Science & ML models? Check out my Data_Science_Ecosystem.*
+
+## Project Catalog
+
+### Astrophysics & Simulation
+
+#### 1. [Star Synthesizer](./star-synthesizer)
+**An interactive audio-visual experiment exploring the sonification of stellar astrophysics.**
+* **Core Concept:** Translates physical stellar parameters (Temperature, Mass, Metallicity, Age) into specific audio synthesis techniques (Subtractive, FM, Granular).
+* **Tech:** Web Audio API, Canvas API, React 19.
+* **Key Feature:** Hear the difference between a young, unstable protostar and an ancient Red Giant.
+
+#### 2. [Gravity Lens Simulator](./gravity-simulator)
+**High-fidelity visualization of orbital mechanics under intense gravitational fields.**
+* **Core Concept:** A "spacetime sandbox" that combines Newtonian mechanics for particle movement with an artistic vertex displacement shader to simulate Gravitational Lensing.
+* **Tech:** Velocity Verlet / Semi-Implicit Euler Integrator, Canvas API.
+* **Key Feature:** Visualizes the "Einstein Ring" effect and allows for orbital injection around a central singularity.
+
+#### 3. [Fermi Paradox Computing Terminal](./fermi-paradox-dashboard)
+**A brutalist exobiological simulator for the Drake Equation.**
+* **Core Concept:** Calculates the potential number of active civilizations (N) in real-time while simulating the "Galactic Graveyard".
+* **Tech:** Node.js, Gemini API.
+* **Key Feature:** "Deep Scan" functionality that uses AI to generate a sci-fi narrative diagnosis based on your specific simulation parameters.
+
+#### 4. [Red-Shift Architect (Exo-Planet Builder)](./exo-planet-builder)
+**Deterministic procedural generation engine for exoplanets.**
+* **Core Concept:** Combines raw mathematical pixel rendering (no assets) with Neural Lore Synthesis.
+* **Tech:** Custom Noise Algorithms, Gemini 2.5 Flash.
+* **Key Feature:** The visuals are deterministic code; the history is AI hallucination. Creates unique, low-fidelity artifacts with deep lore.
+
+---
+
+### Artificial Intelligence & UI
+
+#### 5. [Lumina Chatbot](./lumina-chatbot)
+**Next-Generation Semantic Search E-Commerce Experience.**
+* **Core Concept:** Replaces traditional filters with a conversational AI stylist that understands intent, context, and style.
+* **Tech:** Gemini 2.5 Flash, Weighted Scoring Algorithms, Pollinations.ai.
+* **Key Feature:** Frontend-First Architecture. Features "Sticky Context" (remembers gender/preferences) and "Honest AI" fallback to prevent hallucinations when inventory is missing.
+
+---
+
+## Common Technical Stack
+
+* **Framework:** React 19 (Hooks based architecture)
+* **Language:** TypeScript 5.0+ (Strict typing)
+* **Build Tool:** Vite
+* **Styling:** Tailwind CSS
+* **AI Model:** Google Gemini 2.5 Flash
+
+## How to Run
+
+Since this is a monorepo containing multiple independent applications, you must navigate to the specific project folder to run it.
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/aleetreny/Development.git](https://github.com/aleetreny/Development.git)
+    ```
+
+2.  **Navigate to a project (example):**
+    ```bash
+    cd star-synthesizer
+    # or
+    cd gravity-simulator
+    ```
+
+3.  **Install dependencies and start:**
+    ```bash
+    npm install
+    npm run dev
+    ```
+
+## Environment Variables
+
+Projects utilizing AI (Lumina, Fermi Paradox, Exo-Planet Builder) require a Google Gemini API Key.
+
+Create a .env file in the specific project root:
+```env
+API_KEY=your_google_gemini_api_key_here
