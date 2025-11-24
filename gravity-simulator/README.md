@@ -2,37 +2,37 @@
 
 ## Abstract
 
-**Gravity Lens Simulator** is a high-performance, interactive web application that visualizes the behavior of particles under intense gravitational fields. Built with **React 19**, **TypeScript**, and the **HTML5 Canvas API**, it combines Newtonian orbital mechanics with an artistic approximation of gravitational lensing to create a visually striking and interactive "spacetime sandbox."
+Gravity Lens Simulator is a high-performance, interactive web application that visualizes the behavior of particles under intense gravitational fields. Built with React 19, TypeScript, and the HTML5 Canvas API, it combines Newtonian orbital mechanics with an artistic approximation of gravitational lensing to create a visually striking and interactive "spacetime sandbox."
 
-This project prioritizes **frame rate (60 FPS)**, **interactivity**, and **stable orbital mechanics** over the strict tensor calculus required for General Relativity simulations.
+This project prioritizes frame rate (60 FPS), interactivity, and stable orbital mechanics over the strict tensor calculus required for General Relativity simulations.
 
 ---
 
-##  Physics Engine: Newtonian Mechanics
+## Physics Engine: Newtonian Mechanics
 
 To ensure a smooth simulation where particles can orbit stably for long periods (creating satisfying "spirograph" patterns), the engine utilizes classical mechanics rather than General Relativity.
 
 ### 1. The Gravity Model
-We use **Newton's Law of Universal Gravitation** with a softened core to prevent numerical singularities:
+We use Newton's Law of Universal Gravitation with a softened core to prevent numerical singularities:
 
 $$\vec{F} = G \frac{M \cdot m}{r^2} \hat{r}$$
 
-* **Why Newton?** In General Relativity (Schwarzschild metric), stable orbits only exist outside the ISCO ($3 \times$ Schwarzschild Radius). Any particle crossing that limit spirals inward immediately. While physically correct, this makes for a frustrating "game" experience where particles die too quickly.
+* **Why Newton?** In General Relativity (Schwarzschild metric), stable orbits only exist outside the ISCO (3x Schwarzschild Radius). Any particle crossing that limit spirals inward immediately. While physically correct, this makes for a frustrating "game" experience where particles die too quickly.
 * **The "Fun" Factor:** Newtonian gravity allows for stable elliptical orbits at any distance, permitting users to create complex swarms of particles that remain on screen.
 
 ### 2. Numerical Integration (Semi-Implicit Euler)
-The simulation advances time using the **Semi-Implicit Euler** method (also known as Symplectic Euler).
+The simulation advances time using the Semi-Implicit Euler method (also known as Symplectic Euler).
 
 * **Step 1 (Velocity):** $\vec{v}_{t+1} = \vec{v}_t + \vec{a}(\vec{r}_t) \cdot \Delta t$
 * **Step 2 (Position):** $\vec{r}_{t+1} = \vec{r}_t + \vec{v}_{t+1} \cdot \Delta t$
 
-**Trade-off:** While less precise than *Runge-Kutta 4 (RK4)* or *Velocity Verlet* regarding energy conservation over hours of simulation, Symplectic Euler is exceptionally fast and stable enough for real-time visual usage.
+**Trade-off:** While less precise than Runge-Kutta 4 (RK4) or Velocity Verlet regarding energy conservation over hours of simulation, Symplectic Euler is exceptionally fast and stable enough for real-time visual usage.
 
 ---
 
-##  Rendering Engine: Artistic Lensing
+## Rendering Engine: Artistic Lensing
 
-Real-time ray-tracing of curved spacetime is computationally prohibitive for a browser-based 2D Canvas application. Instead, we use a **geometric vertex displacement** technique to approximate the *look* of gravitational lensing.
+Real-time ray-tracing of curved spacetime is computationally prohibitive for a browser-based 2D Canvas application. Instead, we use a geometric vertex displacement technique to approximate the look of gravitational lensing.
 
 ### The Algorithm
 Instead of calculating the actual bending of light rays ($\alpha \approx 4GM/c^2b$), the grid background is distorted using a radial interpolation function:
@@ -47,19 +47,19 @@ Instead of calculating the actual bending of light rays ($\alpha \approx 4GM/c^2
 
 ---
 
-##  Controls & Features
+## Controls & Features
 
 The simulation is designed to be a "toy" for exploration.
 
 * **Orbital Injection (Click):** Clicking anywhere on the canvas spawns a particle.
-    * *Smart Velocity:* The engine automatically calculates the tangent velocity required for a **perfect circular orbit** at that distance ($v = \sqrt{GM/r}$), ensuring particles don't just crash immediately.
+    * **Smart Velocity:** The engine automatically calculates the tangent velocity required for a perfect circular orbit at that distance ($v = \sqrt{GM/r}$), ensuring particles don't just crash immediately.
 * **Mass Slider:** Increases the central mass. This creates stronger gravity and expands the visual lensing radius.
 * **Time Scale:** Allows for slow-motion observation or fast-forwarding the orbital evolution.
 * **Grid Density:** Adjusts the resolution of the background spacetime fabric.
 
 ---
 
-##  Technical Stack
+## Technical Stack
 
 * **Core Framework:** React 19 (Hooks based architecture)
 * **Language:** TypeScript 5.0 (Strict typing for vector math)
@@ -69,7 +69,7 @@ The simulation is designed to be a "toy" for exploration.
 
 ---
 
-##  Installation & Setup
+## Installation & Setup
 
 1.  **Clone the repository:**
     ```bash
@@ -94,7 +94,7 @@ The simulation is designed to be a "toy" for exploration.
 
 ---
 
-##  Limitations & Honesty
+## Limitations & Honesty
 
 In the interest of scientific transparency, users should be aware of the following divergences from reality:
 
