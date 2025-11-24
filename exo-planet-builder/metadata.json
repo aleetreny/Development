@@ -1,0 +1,5 @@
+{
+  "name": "Exo-Planet Builder",
+  "description": "A procedural SVG planet generator using custom noise algorithms and Voronoi-style hexagonal tiling. Features SVG export and AI-powered planet lore generation.",
+  "requestFramePermissions": []
+}
