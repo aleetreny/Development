@@ -23,7 +23,7 @@ A collection of high-performance web applications exploring the intersection of 
 #### 3. [Fermi Paradox Computing Terminal](./fermi-paradox-dashboard)
 **A brutalist exobiological simulator for the Drake Equation.**
 * **Core Concept:** Calculates the potential number of active civilizations (N) in real-time while simulating the "Galactic Graveyard".
-* **Tech:** Node.js, Gemini API.
+* **Tech:** Node.js.
 * **Key Feature:** "Deep Scan" functionality that uses AI to generate a sci-fi narrative diagnosis based on your specific simulation parameters.
 
 #### 4. [Red-Shift Architect (Exo-Planet Builder)](./exo-planet-builder)
