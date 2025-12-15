@@ -38,10 +38,10 @@ Variables related to the physical structure of the galaxy.
 The evolutionary hurdles life must overcome.
 *   **Origin of Life ($f_l$)**: The likelihood that simple biology arises on a habitable planet (Abiogenesis).
 *   **Intelligence Evolution ($f_i$)**: The likelihood that simple life evolves into complex, cognitive beings (The step from bacteria to tool-users).
-*   **Communication Tech ($f_c$)**: The fraction of intelligent species that develop detectable technology (Radio/Lasers) rather than remaining in a pre-industrial state.
 
 ### [C] The Great Filter (Sociological)
 The variables determining the longevity of a civilization.
+*   **Communication Tech ($f_c$)**: The fraction of intelligent species that develop detectable technology (Radio/Lasers) rather than remaining in a pre-industrial state.
 *   **Civilization Lifespan ($L$)**: The base number of years a civilization can transmit signals.
 *   **Extinction Factor ($C_f$)**: **[Unique to this Simulator]** An annual probability variable representing existential risks (Nuclear War, AI misalignment, Asteroids, Supernovae).
 
