@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Gravity Lens Simulator is a high-performance, interactive web application that visualizes the behavior of particles under intense gravitational fields. Built with React 19, TypeScript, and the HTML5 Canvas API, it combines Newtonian orbital mechanics with an artistic approximation of gravitational lensing to create a visually striking and interactive "spacetime sandbox."
+Gravity Lens Simulator is a high-performance, interactive web application that visualizes the behavior of particles under intense gravitational fields. It combines Newtonian orbital mechanics with an artistic approximation of gravitational lensing to create a visually striking and interactive "spacetime sandbox."
 
 This project prioritizes frame rate (60 FPS), interactivity, and stable orbital mechanics over the strict tensor calculus required for General Relativity simulations.
 
