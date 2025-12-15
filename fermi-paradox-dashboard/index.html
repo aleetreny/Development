@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fermi Paradox Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+            color: #00FF00;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        #root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas {
+            display: block;
+            background: #000000;
+            border: 2px solid #00FF00;
+            box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 1rem;
+            background: #002200;
+            border: 1px solid #00FF00;
+            appearance: none;
+            cursor: pointer;
+            focus: outline-none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 1rem;
+            height: 1.5rem;
+            background: #00FF00;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 1rem;
+            height: 1.5rem;
+            background: #00FF00;
+            border: none;
+            cursor: pointer;
+        }
+        .scrollable-container {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 255, 0, 0.3) transparent;
+        }
+        .scrollable-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollable-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollable-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 0, 0.3);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect, useMemo, useCallback } = React;
+
+        // ===== CONSTANTS =====
+        const GALAXY_AGE = 10_000_000_000;
+        const GALAXY_AREA_LY = 7_850_000_000;
+        const MAX_RENDER_COUNT = 4000;
+        const THEORETICAL_MAX_N = 50_000_000;
+
+        const INITIAL_PARAMS = {
+            R_star: 2,
+            f_p: 0.5,
+            n_e: 1,
+            f_l: 0.1,
+            f_i: 0.1,
+            f_c: 0.1,
+            L: 10000,
+            C_f: 0.0001
+        };
+
+        const PARAM_DEFINITIONS = {
+            R_star: {
+                label: "STAR FORMATION RATE (R*)",
+                min: 1,
+                max: 10,
+                step: 0.5,
+                desc: "New stars born per year. The basic 'fuel' of the universe.",
+                unit: ""
+            },
+            f_p: {
+                label: "FRACTION WITH PLANETS (f_p)",
+                min: 0,
+                max: 1,
+                step: 0.05,
+                desc: "Percentage of stars that have planetary systems.",
+                unit: ""
+            },
+            n_e: {
+                label: "HABITABLE PLANETS (n_e)",
+                min: 0.1,
+                max: 5,
+                step: 0.1,
+                desc: "Average number of worlds capable of sustaining life (liquid water) per system.",
+                unit: ""
+            },
+            f_l: {
+                label: "ORIGIN OF LIFE (f_l)",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                desc: "Probability that simple biology spontaneously emerges on a habitable world.",
+                unit: ""
+            },
+            f_i: {
+                label: "INTELLIGENCE EVOLUTION (f_i)",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                desc: "Probability of evolving from simple cells to complex, intelligent tool-users.",
+                unit: ""
+            },
+            f_c: {
+                label: "COMMUNICATION TECH (f_c)",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                desc: "Fraction of intelligent species that develop technologies detectable from space (Radio/Lasers).",
+                unit: ""
+            },
+            L: {
+                label: "CIVILIZATION LIFESPAN (L)",
+                min: 100,
+                max: 1000000,
+                step: 100,
+                desc: "Years a civilization remains detectable before extinction or transcendence.",
+                unit: "years"
+            },
+            C_f: {
+                label: "EXTINCTION FACTOR",
+                min: 0,
+                max: 0.01,
+                step: 0.0001,
+                desc: "Annual risk of total collapse (AI, Nuclear War, Asteroids).",
+                unit: ""
+            }
+        };
+
+        // ===== UTILS =====
+        const calculateResults = (params) => {
+            const effectiveL = Math.floor(params.L / (1 + (params.L * params.C_f * 10)));
+            const R_civ = params.R_star * params.f_p * params.n_e * params.f_l * params.f_i * params.f_c;
+            const N_active = Math.floor(R_civ * effectiveL);
+            const N_total_history = Math.floor(R_civ * GALAXY_AGE);
+            let N_ruins = N_total_history - N_active;
+            if (N_ruins < 0) N_ruins = 0;
+            let avgDistance = 0;
+            if (N_active > 0) {
+                avgDistance = Math.sqrt(GALAXY_AREA_LY / N_active);
+            }
+            return {
+                N_active,
+                N_ruins,
+                avgDistance,
+                R_civ,
+                effectiveL
+            };
+        };
+
+        const formatNumber = (num) => {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(2) + "B";
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+            if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+            return Math.floor(num).toString();
+        };
+
+        const calculateStrategicMetrics = (results, params) => {
+            const effLFormatted = formatNumber(results.effectiveL) + " YRS";
+            const signalArea = Math.PI * Math.pow(results.effectiveL, 2);
+            const coverageRatio = (signalArea / GALAXY_AREA_LY) * 100;
+            let coverageStr = coverageRatio < 0.0001 ? "< 0.0001%" : coverageRatio.toFixed(4) + "%";
+            if (coverageRatio > 100) coverageStr = "100% (SATURATION)";
+            let prob = (results.N_active / 50000) * 100;
+            if (prob > 99.9) prob = 99.9;
+            if (prob < 0.0001) prob = 0.0001;
+            let sig = "WEAK / BACKGROUND NOISE";
+            if (results.N_active > 10000) sig = "DETECTABLE";
+            if (results.N_active > 1000000) sig = "OMNIPRESENT";
+            return {
+                effectiveL: effLFormatted,
+                contactProbability: `${prob.toFixed(3)}%`,
+                radioHorizon: coverageStr,
+                signalStrength: sig
+            };
+        };
+
+        // ===== COMPONENTS =====
+        const BrutalistSlider = ({ label, value, min, max, step, onChange, description, unit }) => {
+            return (
+                <div className="mb-3 border border-[#00FF00] p-3 bg-[#001100] shadow-lg flex-shrink-0" style={{boxShadow: '0 0 10px rgba(0, 255, 0, 0.2)'}}>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs font-bold uppercase tracking-wider">{label}</label>
+                        <span className="text-xs font-mono font-bold">{value.toFixed(step < 0.1 ? 4 : step < 1 ? 2 : 0)} {unit}</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={value}
+                        onChange={(e) => onChange(parseFloat(e.target.value))}
+                        className="w-full"
+                    />
+                    <div className="flex justify-between text-xs mt-2 opacity-60 font-mono">
+                        <span>{min}</span>
+                        <span>{max}</span>
+                    </div>
+                    <p className="text-xs mt-1 opacity-70 leading-tight">{description}</p>
+                </div>
+            );
+        };
+
+        const CanvasVisualizer = ({ results }) => {
+            const canvasRef = useRef(null);
+
+            const starMap = useMemo(() => {
+                const stars = [];
+                const width = 600;
+                const height = 600;
+                for (let i = 0; i < MAX_RENDER_COUNT; i++) {
+                    stars.push({
+                        x: Math.floor(Math.random() * width),
+                        y: Math.floor(Math.random() * height),
+                        size: Math.random() > 0.9 ? 2 : 1,
+                        baseColor: Math.random() > 0.7 ? '#113311' : '#001100'
+                    });
+                }
+                return stars;
+            }, []);
+
+            const starIndices = useMemo(() => {
+                const indices = Array.from({ length: MAX_RENDER_COUNT }, (_, i) => i);
+                for (let i = indices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [indices[i], indices[j]] = [indices[j], indices[i]];
+                }
+                return indices;
+            }, []);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const maxLog = Math.log10(THEORETICAL_MAX_N);
+                const activeLog = Math.log10(results.N_active + 1);
+                const activeRatio = Math.min(activeLog / maxLog, 1);
+                const boostedActiveRatio = Math.min(activeRatio * 1.2, 1);
+                const activeDotsToRender = Math.floor(boostedActiveRatio * MAX_RENDER_COUNT);
+
+                const ruinsLog = Math.log10(results.N_ruins + 1);
+                const ruinsRatio = Math.min(ruinsLog / maxLog, 1);
+                const ruinsDotsToRender = Math.min(
+                    Math.floor(ruinsRatio * MAX_RENDER_COUNT),
+                    MAX_RENDER_COUNT - activeDotsToRender
+                );
+
+                const activeSet = new Set(starIndices.slice(0, activeDotsToRender));
+                const ruinSet = new Set(starIndices.slice(activeDotsToRender, activeDotsToRender + ruinsDotsToRender));
+
+                starMap.forEach((star, index) => {
+                    let color = star.baseColor;
+                    let size = star.size;
+                    if (activeSet.has(index)) {
+                        color = '#00FF00';
+                        size = 2;
+                    } else if (ruinSet.has(index)) {
+                        color = '#FF0000';
+                        size = 2;
+                    }
+
+                    ctx.fillStyle = color;
+                    if (color === '#FF0000') {
+                        ctx.fillRect(star.x, star.y, size, size);
+                    } else {
+                        if (color === '#00FF00' && Math.random() > 0.8) {
+                            ctx.fillStyle = 'rgba(0, 255, 0, 0.4)';
+                            ctx.fillRect(star.x - 1, star.y - 1, size + 2, size + 2);
+                            ctx.fillStyle = color;
+                        }
+                        ctx.fillRect(star.x, star.y, size, size);
+                    }
+                });
+
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.03)';
+                for (let y = 0; y < canvas.height; y += 2) {
+                    ctx.fillRect(0, y, canvas.width, 1);
+                }
+            }, [results, starMap, starIndices]);
+
+            return (
+                <div>
+                    <canvas
+                        ref={canvasRef}
+                        width={600}
+                        height={600}
+                        className="w-full border-2 border-[#00FF00]"
+                        style={{boxShadow: 'inset 0 0 20px rgba(0, 255, 0, 0.1), 0 0 15px rgba(0, 255, 0, 0.15)'}}
+                    />
+                    <div className="mt-2 text-xs p-2 border border-[#00FF00] bg-[#001100] leading-tight" style={{boxShadow: '0 0 8px rgba(0, 255, 0, 0.1)'}}>
+                        <div className="font-mono uppercase text-xs">VISUAL MODE: LOGARITHMIC SCALE (X1.2)</div>
+                        <div className="font-mono uppercase text-xs opacity-75">SECTOR 7G UPLINK [ONLINE]</div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===== APP MAIN =====
+        const App = () => {
+            const [params, setParams] = useState(INITIAL_PARAMS);
+            const results = calculateResults(params);
+            const strategic = calculateStrategicMetrics(results, params);
+
+            const handleParamChange = useCallback((key, value) => {
+                setParams(prev => ({
+                    ...prev,
+                    [key]: value
+                }));
+            }, []);
+
+            return (
+                <div className="flex flex-col w-screen h-screen bg-[#000000] text-[#00FF00] font-mono" style={{background: 'radial-gradient(ellipse at bottom, #001100 0%, #000000 100%)'}}>
+                    {/* HEADER */}
+                    <div className="border-2 border-[#00FF00] p-2 bg-[#001100] flex-shrink-0" style={{boxShadow: '0 0 20px rgba(0, 255, 0, 0.2), inset 0 0 10px rgba(0, 255, 0, 0.05)'}}>
+                        <div className="text-center leading-tight">
+                            <h1 className="text-2xl font-bold uppercase tracking-widest" style={{textShadow: '0 0 10px rgba(0, 255, 0, 0.5)', lineHeight: '1'}}>FERMI PARADOX TERMINAL</h1>
+                            <p className="text-xs opacity-60 uppercase tracking-widest" style={{lineHeight: '1'}}>DRAKE EQUATION SIMULATION v2.0</p>
+                            <div className="text-xs opacity-50 font-mono" style={{lineHeight: '1'}}>[ EXOPLANET DISCOVERY ENGINE ]</div>
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex flex-1 gap-3 p-3 overflow-hidden">
+                        {/* LEFT: PARAMETERS - SCROLLABLE */}
+                        <div className="lg:w-1/4 w-full overflow-hidden flex flex-col min-w-0">
+                            <div className="border-2 border-[#00FF00] p-3 bg-[#001100] flex flex-col h-full overflow-hidden" style={{boxShadow: '0 0 15px rgba(0, 255, 0, 0.15), inset 0 0 8px rgba(0, 255, 0, 0.02)'}}>
+                                <h2 className="text-xs font-bold border-b border-[#00FF00] pb-2 uppercase tracking-wide flex-shrink-0 sticky top-0 bg-[#001100] z-20 py-1">
+                                    ▌ CONTROLS
+                                </h2>
+
+                                <div className="overflow-y-auto scrollable-container flex-1 mt-2">
+                                    <div className="mb-2 text-xs border-l-4 border-[#00FF00] pl-2 py-1 bg-[#000000] opacity-75">
+                                        <div className="uppercase font-bold text-xs">[ A ] ASTRO</div>
+                                    </div>
+
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.R_star.label} value={params.R_star} min={PARAM_DEFINITIONS.R_star.min} max={PARAM_DEFINITIONS.R_star.max} step={PARAM_DEFINITIONS.R_star.step} onChange={(v) => handleParamChange('R_star', v)} description={PARAM_DEFINITIONS.R_star.desc} unit={PARAM_DEFINITIONS.R_star.unit} />
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.f_p.label} value={params.f_p} min={PARAM_DEFINITIONS.f_p.min} max={PARAM_DEFINITIONS.f_p.max} step={PARAM_DEFINITIONS.f_p.step} onChange={(v) => handleParamChange('f_p', v)} description={PARAM_DEFINITIONS.f_p.desc} unit={PARAM_DEFINITIONS.f_p.unit} />
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.n_e.label} value={params.n_e} min={PARAM_DEFINITIONS.n_e.min} max={PARAM_DEFINITIONS.n_e.max} step={PARAM_DEFINITIONS.n_e.step} onChange={(v) => handleParamChange('n_e', v)} description={PARAM_DEFINITIONS.n_e.desc} unit={PARAM_DEFINITIONS.n_e.unit} />
+
+                                    <div className="my-2 text-xs border-l-4 border-[#00FF00] pl-2 py-1 bg-[#000000] opacity-75">
+                                        <div className="uppercase font-bold text-xs">[ B ] BIO</div>
+                                    </div>
+
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.f_l.label} value={params.f_l} min={PARAM_DEFINITIONS.f_l.min} max={PARAM_DEFINITIONS.f_l.max} step={PARAM_DEFINITIONS.f_l.step} onChange={(v) => handleParamChange('f_l', v)} description={PARAM_DEFINITIONS.f_l.desc} unit={PARAM_DEFINITIONS.f_l.unit} />
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.f_i.label} value={params.f_i} min={PARAM_DEFINITIONS.f_i.min} max={PARAM_DEFINITIONS.f_i.max} step={PARAM_DEFINITIONS.f_i.step} onChange={(v) => handleParamChange('f_i', v)} description={PARAM_DEFINITIONS.f_i.desc} unit={PARAM_DEFINITIONS.f_i.unit} />
+
+                                    <div className="my-2 text-xs border-l-4 border-[#00FF00] pl-2 py-1 bg-[#000000] opacity-75">
+                                        <div className="uppercase font-bold text-xs">[ C ] FILTER</div>
+                                    </div>
+
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.f_c.label} value={params.f_c} min={PARAM_DEFINITIONS.f_c.min} max={PARAM_DEFINITIONS.f_c.max} step={PARAM_DEFINITIONS.f_c.step} onChange={(v) => handleParamChange('f_c', v)} description={PARAM_DEFINITIONS.f_c.desc} unit={PARAM_DEFINITIONS.f_c.unit} />
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.L.label} value={params.L} min={PARAM_DEFINITIONS.L.min} max={PARAM_DEFINITIONS.L.max} step={PARAM_DEFINITIONS.L.step} onChange={(v) => handleParamChange('L', v)} description={PARAM_DEFINITIONS.L.desc} unit={PARAM_DEFINITIONS.L.unit} />
+                                    <BrutalistSlider label={PARAM_DEFINITIONS.C_f.label} value={params.C_f} min={PARAM_DEFINITIONS.C_f.min} max={PARAM_DEFINITIONS.C_f.max} step={PARAM_DEFINITIONS.C_f.step} onChange={(v) => handleParamChange('C_f', v)} description={PARAM_DEFINITIONS.C_f.desc} unit={PARAM_DEFINITIONS.C_f.unit} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* CENTER: VISUALIZATION */}
+                        <div className="lg:w-1/2 w-full flex items-center justify-center min-w-0">
+                            <div className="border-2 border-[#00FF00] p-3 bg-[#001100] w-full h-full flex flex-col" style={{boxShadow: '0 0 15px rgba(0, 255, 0, 0.15), inset 0 0 8px rgba(0, 255, 0, 0.02)'}}>
+                                <h2 className="text-xs font-bold border-b border-[#00FF00] pb-2 uppercase tracking-wide flex-shrink-0">
+                                    ▌ GALACTIC MAP
+                                </h2>
+                                <div className="flex-1 flex items-center justify-center overflow-hidden">
+                                    <div className="w-full">
+                                        <CanvasVisualizer results={results} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: RESULTS */}
+                        <div className="lg:w-1/4 w-full overflow-hidden flex flex-col min-w-0">
+                            <div className="border-2 border-[#00FF00] p-3 bg-[#001100] flex flex-col h-full overflow-hidden" style={{boxShadow: '0 0 15px rgba(0, 255, 0, 0.15), inset 0 0 8px rgba(0, 255, 0, 0.02)'}}>
+                                <h2 className="text-xs font-bold border-b border-[#00FF00] pb-2 uppercase tracking-wide flex-shrink-0 sticky top-0 bg-[#001100] z-20 py-1">
+                                    ▌ RESULTS
+                                </h2>
+
+                                <div className="overflow-y-auto scrollable-container flex-1 mt-2">
+                                    <div className="mb-2 p-2 border-l-4 border-[#00FF00] bg-[#000000] shadow-lg" style={{boxShadow: '0 0 10px rgba(0, 255, 0, 0.1)'}}>
+                                        <div className="text-xs opacity-70 uppercase tracking-wide font-mono">ACTIVE (N)</div>
+                                        <div className="text-2xl font-bold mt-1" style={{textShadow: '0 0 8px rgba(0, 255, 0, 0.3)'}}>{formatNumber(results.N_active)}</div>
+                                    </div>
+
+                                    <div className="mb-2 p-2 border-l-4 border-[#FF4444] bg-[#330000] shadow-lg" style={{boxShadow: '0 0 10px rgba(255, 68, 68, 0.2)'}}>
+                                        <div className="text-xs opacity-70 uppercase tracking-wide font-mono">RUINS</div>
+                                        <div className="text-2xl font-bold mt-1 text-[#FF6666]" style={{textShadow: '0 0 8px rgba(255, 68, 68, 0.3)'}}>{formatNumber(results.N_ruins)}</div>
+                                    </div>
+
+                                    <div className="mb-2 p-2 border-l-4 border-[#00FF00] bg-[#000000] shadow-lg" style={{boxShadow: '0 0 10px rgba(0, 255, 0, 0.1)'}}>
+                                        <div className="text-xs opacity-70 uppercase tracking-wide font-mono">DISTANCE</div>
+                                        <div className="text-lg font-bold mt-1" style={{textShadow: '0 0 8px rgba(0, 255, 0, 0.3)'}}>
+                                            {results.N_active > 0 ? formatNumber(results.avgDistance) : "∞"} <span className="text-xs">ly</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-xs mb-2 opacity-60 font-mono">► OUTPUT ● RX</div>
+                                    <h3 className="text-xs font-bold border-b border-[#00FF00] pb-2 uppercase tracking-wide">
+                                        ▌ METRICS
+                                    </h3>
+
+                                    <div className="space-y-2 mt-2">
+                                        <div className="p-2 border-l-4 border-[#00FF00] bg-[#000000]" style={{boxShadow: '0 0 8px rgba(0, 255, 0, 0.08)'}}>
+                                            <div className="text-xs opacity-70 uppercase tracking-wide font-mono">LONGEVITY</div>
+                                            <div className="font-bold text-sm mt-1">{strategic.effectiveL}</div>
+                                        </div>
+
+                                        <div className="p-2 border-l-4 border-[#00FF00] bg-[#000000]" style={{boxShadow: '0 0 8px rgba(0, 255, 0, 0.08)'}}>
+                                            <div className="text-xs opacity-70 uppercase tracking-wide font-mono">CONTACT (100Y)</div>
+                                            <div className="font-bold text-sm mt-1">{strategic.contactProbability}</div>
+                                        </div>
+
+                                        <div className="p-2 border-l-4 border-[#00FF00] bg-[#000000]" style={{boxShadow: '0 0 8px rgba(0, 255, 0, 0.08)'}}>
+                                            <div className="text-xs opacity-70 uppercase tracking-wide font-mono">COVERAGE</div>
+                                            <div className="font-bold text-sm mt-1">{strategic.radioHorizon}</div>
+                                        </div>
+
+                                        <div className="p-2 border-l-4 border-[#00FF00] bg-[#000000]" style={{boxShadow: '0 0 8px rgba(0, 255, 0, 0.08)'}}>
+                                            <div className="text-xs opacity-70 uppercase tracking-wide font-mono">STRENGTH</div>
+                                            <div className="font-bold text-sm mt-1">{strategic.signalStrength}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="text-center text-xs opacity-50 font-mono border-t border-[#00FF00] p-1 flex-shrink-0 leading-tight bg-[#000000]">
+                        <div>SIMULATION STATUS: [ ONLINE ] | UPLINK: 100%</div>
+                        <div className="text-[#FF6666]">⚠ "Where Is Everybody?" - E. Fermi, 1950 ⚠</div>
+                    </div>
+                </div>
+            );
+        };
+
+        // MOUNT
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
