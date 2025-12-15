@@ -1,5 +1,0 @@
-{
-  "name": "Star Synthesizer",
-  "description": "An interactive audiovisual synthesizer that simulates the characteristics of a star using Web Audio API and HTML5 Canvas.",
-  "requestFramePermissions": []
-}
