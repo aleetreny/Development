@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RED-SHIFT: Exoplanet Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React UMD (Global) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Gemini API (ImportMap only) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+    }
+    </script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background: #050000;
+            color: #ff3333;
+            overflow: hidden;
+        }
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255, 51, 51, 0.05),
+                rgba(255, 51, 51, 0.05) 2px,
+                transparent 2px,
+                transparent 4px
+            );
+            z-index: 9999;
+        }
+        .crt-border {
+            border: 3px solid #ff3333;
+            box-shadow: inset 0 0 10px rgba(255, 51, 51, 0.3), 0 0 20px rgba(255, 51, 51, 0.5);
+        }
+        input, select {
+            font-family: 'Courier New', monospace;
+        }
+        textarea {
+            font-family: 'Courier New', monospace;
+        }
+        .terminal-text {
+            text-shadow: 0 0 5px rgba(255, 51, 51, 0.5);
+        }
+        .glitch {
+            animation: glitch 0.3s infinite;
+        }
+        @keyframes glitch {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(1px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <div class="scanline"></div>
+
+    <script type="text/babel" data-type="module">
+        // ==================== IMPORTS & GLOBALS ====================
+        const { useState, useEffect, useRef } = React;
+        const { createRoot } = ReactDOM;
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // ==================== TIPOS & CONSTANTES ====================
+        
+        const DEFAULT_PARAMS = {
+            planetType: "Gas Giant",
+            atmosphereColor: "Toxic Green",
+            surfaceFeature: "Floating Islands",
+            liquidType: "Acid Oceans",
+            civilizationLevel: "Fallen Empire",
+            dominantLifeForm: "Cybernetic Insects",
+            skyFeature: "Binary Sun",
+            weatherCondition: "Perpetual Storm",
+            dangerLevel: "Nightmare",
+            weirdFeature: "Giant Floating Skulls"
+        };
+
+        const PARAM_OPTIONS = {
+            planetType: ["Terrestrial", "Gas Giant", "Ice World", "Lava World", "Artificial Construct", "Shattered World", "Living Organism"],
+            atmosphereColor: ["Toxic Green", "Deep Blue", "Plasma Red", "Void Black", "Neon Pink", "Sulfur Yellow", "No Atmosphere"],
+            surfaceFeature: ["Jagged Mountains", "Endless Deserts", "Fungal Forests", "Crystal Spires", "Bio-Mechanical Flesh", "Metallic Cities", "Obsidian Plains"],
+            liquidType: ["Water", "Molten Lava", "Liquid Methane", "Acid", "Mercury", "Blood", "None"],
+            civilizationLevel: ["Stone Age", "Industrial", "Cyberpunk", "Post-Singularity", "Extinct", "Hive Mind", "Cosmic Horror"],
+            dominantLifeForm: ["Humans", "Robots", "Insects", "Energy Beings", "Undead", "Plants", "Unknown"],
+            skyFeature: ["Binary Sun", "Broken Moon", "Nebula", "Black Hole", "Space Station Ring", "Aurora", "Asteroid Field"],
+            weatherCondition: ["Clear", "Acid Rain", "Solar Storms", "Ash Fall", "Blizzard", "Time Distortion", "Nanite Swarm"],
+            dangerLevel: ["Safe", "Moderate", "Hazardous", "Deadly", "Nightmare", "Existential Threat"],
+            weirdFeature: ["Giant Skeletons", "Floating Islands", "Glitch Effects", "Ancient Monoliths", "Eye of God", "Underwater Cities"]
+        };
+
+        // ==================== STATE GLOBAL ====================
+        let globalApiKey = null;
+
+        // ==================== SERVICIOS (GEMINI + GENERATOR) ====================
+
+        const generateRetroPlanetLore = async (params) => {
+            if (!globalApiKey) {
+                throw new Error("API Key missing - Please configure your Gemini API Key");
+            }
+
+            const genAI = new GoogleGenerativeAI(globalApiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+            const lorePrompt = `
+CONTEXT: You are the AI mainframe of a retro sci-fi exploration vessel.
+
+TASK: Generate a PLANETARY SCAN REPORT based on these parameters:
+
+${JSON.stringify(params, null, 2)}
+
+Directives:
+- Be creative, weird, and a bit "trippy" (fumada).
+- Tone: Cold analysis mixed with cosmic horror or wonder.
+- Format: JSON only, no markdown, no code blocks.
+
+Expected JSON Output (MUST be valid JSON):
+{
+  "name": "Generated Name (e.g. XG-99 'Widow')",
+  "designation": "Sector/Coords",
+  "description": "Visual description of the landscape.",
+  "history": "A bizarre myth or historical event that ruined or shaped this world.",
+  "inhabitants": "Details on the ${params.dominantLifeForm} (Level: ${params.civilizationLevel}).",
+  "resources": ["Strange Resource 1", "Strange Resource 2", "Strange Resource 3"]
+}
+`;
+
+            try {
+                const result = await model.generateContent(lorePrompt);
+                const responseText = result.response.text();
+                
+                // Extract JSON from response (in case there's extra text)
+                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error("No valid JSON found in response");
+                }
+                
+                return JSON.parse(jsonMatch[0]);
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                
+                // Detectar error 429 (Rate limit)
+                if (error.message.includes("429") || error.message.includes("Resource exhausted")) {
+                    throw new Error("⚠️ Tráfico alto en la IA. Por favor, espera 1 minuto y vuelve a intentarlo.");
+                }
+                throw error;
+            }
+        };
+
+        // ==================== PLANET GENERATOR ====================
+
+        const COLORS = {
+            "Toxic Green": "#33ff00",
+            "Deep Blue": "#0033ff",
+            "Plasma Red": "#ff3333",
+            "Void Black": "#111111",
+            "Neon Pink": "#ff00ff",
+            "Sulfur Yellow": "#ffff00",
+            "No Atmosphere": "#000000",
+            "Water": "#2244cc",
+            "Molten Lava": "#cc2200",
+            "Liquid Methane": "#00cccc",
+            "Acid": "#88cc00",
+            "Mercury": "#aaaaaa",
+            "Blood": "#660000",
+            "None": "#444444",
+            "Jagged Mountains": "#554433",
+            "Endless Deserts": "#ccaa66",
+            "Fungal Forests": "#6600cc",
+            "Crystal Spires": "#aaddff",
+            "Bio-Mechanical Flesh": "#aa5555",
+            "Metallic Cities": "#556677",
+            "Obsidian Plains": "#111122"
+        };
+
+        const mulberry32 = (a) => {
+            return function() {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        };
+
+        const drawPlanet = (canvas, params) => {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const cx = width / 2;
+            const cy = height / 2;
+            const radius = width * 0.35;
+
+            // Clear background
+            ctx.fillStyle = '#050000';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Stars
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = Math.random() > 0.9 ? '#ff3333' : '#ffffff';
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                ctx.fillRect(x, y, 1, 1);
+            }
+
+            // Planet colors
+            const baseColor = COLORS[params.liquidType] || '#444444';
+            const landColor = COLORS[params.surfaceFeature] || '#888888';
+            const atmosColor = COLORS[params.atmosphereColor] || 'transparent';
+
+            // Pixel Loop for Planet Body
+            const pixelSize = 4;
+            for (let y = 0; y < height; y += pixelSize) {
+                for (let x = 0; x < width; x += pixelSize) {
+                    const dx = x - cx;
+                    const dy = y - cy;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < radius) {
+                        // Shading
+                        const lightX = cx - radius * 0.5;
+                        const lightY = cy - radius * 0.5;
+                        const lightDist = Math.sqrt((x - lightX) ** 2 + (y - lightY) ** 2);
+                        let shade = 1 - (lightDist / (radius * 2.5));
+
+                        // Noise for terrain
+                        const noise = Math.sin(x * 0.05) + Math.cos(y * 0.05) + Math.random() * 0.5;
+                        const isLand = noise > 0.2;
+
+                        // Base color
+                        ctx.fillStyle = isLand ? landColor : baseColor;
+
+                        // Atmosphere tint
+                        if (dist > radius * 0.85 && atmosColor !== 'transparent' && atmosColor !== '#000000') {
+                            ctx.fillStyle = atmosColor;
+                        }
+
+                        // Dithering for shading
+                        if (Math.random() > shade + 0.2) {
+                            ctx.fillStyle = '#000000';
+                        }
+
+                        ctx.fillRect(x, y, pixelSize, pixelSize);
+                    }
+                }
+            }
+
+            // Ring feature
+            if (params.skyFeature.includes("Ring")) {
+                ctx.strokeStyle = atmosColor;
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, radius * 1.8, radius * 0.4, Math.PI / 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Floating Islands
+            if (params.weirdFeature.includes("Floating")) {
+                ctx.fillStyle = landColor;
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillRect(cx + (Math.random() - 0.5) * radius * 2.5, cy + (Math.random() - 0.5) * radius * 2, 8, 4);
+                }
+            }
+
+            // Atmosphere glow
+            if (atmosColor !== '#000000') {
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                const grad = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius * 1.2);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(1, atmosColor);
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
+            }
+        };
+
+        // ==================== COMPONENTES UI ====================
+
+        // SVG Icons (inline)
+        const IconTerminal = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+        );
+
+        const IconCpu = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="14" x2="23" y2="14"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+        );
+
+        const IconDownload = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+        );
+
+        // Controls Component
+        const Controls = ({ params, setParams, onGenerate, isGenerating }) => {
+            const handleChange = (key, value) => {
+                setParams(prev => ({ ...prev, [key]: value }));
+            };
+
+            const randomize = () => {
+                const newParams = { ...params };
+                Object.keys(PARAM_OPTIONS).forEach(key => {
+                    const options = PARAM_OPTIONS[key];
+                    newParams[key] = options[Math.floor(Math.random() * options.length)];
+                });
+                setParams(newParams);
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-[#0a0000] border-r-2 border-[#ff3333] overflow-y-auto">
+                    <div className="p-3 border-b-2 border-[#ff3333] text-xs font-bold terminal-text sticky top-0 bg-[#0a0000]">
+                        <IconTerminal className="inline mr-2" /> PARAM_INPUT
+                    </div>
+                    
+                    <div className="flex-1 p-3 space-y-3">
+                        {Object.entries(PARAM_OPTIONS).map(([key, options]) => (
+                            <div key={key}>
+                                <label className="text-xs font-bold mb-1 block text-[#ffffff]">
+                                    {key.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}
+                                </label>
+                                <select
+                                    value={params[key]}
+                                    onChange={(e) => handleChange(key, e.target.value)}
+                                    className="w-full bg-[#1a0505] border border-[#ff3333] text-[#ff3333] p-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#ff3333] hover:bg-[#2a0a0a]"
+                                >
+                                    {options.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="border-t-2 border-[#ff3333] p-3 space-y-2 sticky bottom-0 bg-[#0a0000]">
+                        <button
+                            onClick={randomize}
+                            className="w-full bg-[#1a0505] border border-[#ff3333] text-[#ff3333] p-2 text-xs font-bold hover:bg-[#2a0a0a] transition"
+                        >
+                            <IconCpu className="inline mr-2" /> [ RND ] MUTATION
+                        </button>
+                        <button
+                            onClick={onGenerate}
+                            disabled={isGenerating}
+                            className="w-full bg-[#ff3333] text-[#050000] p-2 text-xs font-bold hover:bg-[#ff6666] transition disabled:opacity-50"
+                        >
+                            {isGenerating ? '◉ ANALYZING DATA...' : '⬥ EXECUTE SIMULATION'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // PlanetPreview Component
+        const PlanetPreview = ({ lore, params, isGenerating }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                if (canvasRef.current) {
+                    drawPlanet(canvasRef.current, params);
+                }
+            }, [params]);
+
+            const handleDownload = () => {
+                if (!canvasRef.current) return;
+                try {
+                    const link = document.createElement('a');
+                    link.download = `redshift-planet-${Date.now()}.png`;
+                    link.href = canvasRef.current.toDataURL('image/png');
+                    link.click();
+                } catch (error) {
+                    console.error("Download failed:", error);
+                    alert("Error al descargar la imagen. Intenta de nuevo.");
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-[#0a0000] overflow-hidden px-4 py-3">
+                    {/* Canvas Monitor - Centrada con ancho limitado */}
+                    <div className="crt-border p-2 bg-[#050000] flex items-center justify-center mb-3 flex-shrink-0 mx-auto w-full max-w-md">
+                        <div className="relative w-full aspect-video overflow-hidden rounded">
+                            <canvas
+                                ref={canvasRef}
+                                width={400}
+                                height={250}
+                                className="w-full h-full object-cover"
+                            />
+                            {isGenerating && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-[#000000] bg-opacity-50 rounded">
+                                    <div className="text-[#ff3333] font-bold animate-pulse">
+                                        ⚡ DECODING SIGNAL...
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Download Button */}
+                    <div className="flex-shrink-0 mx-auto w-full max-w-md">
+                        <button
+                            onClick={handleDownload}
+                            className="w-full flex items-center justify-center gap-2 bg-[#1a0505] border border-[#ff3333] text-[#ff3333] px-3 py-2 text-xs font-bold hover:bg-[#2a0a0a] transition"
+                        >
+                            <IconDownload /> DOWNLOAD PLANET
+                        </button>
+                    </div>
+
+                    {/* Decorative UI */}
+                    <div className="px-3 py-2 text-xs border-b border-[#ff3333] space-y-1 text-[#ffffff] flex-shrink-0 mt-2">
+                        <div>COORD: {Math.floor(Math.random() * 999)}:{Math.floor(Math.random() * 999)}</div>
+                        <div>SPEC: {params.planetType.toUpperCase()}</div>
+                    </div>
+
+                    {/* Lore Terminal */}
+                    <div className="flex-1 overflow-y-auto p-3 text-xs space-y-2 crt-border mt-2">
+                        {lore ? (
+                            <>
+                                <div className="font-bold text-[#ffffff]">[ {lore.name.toUpperCase()} ]</div>
+                                <div className="text-[#e0e0e0]">DESIGNATION: {lore.designation}</div>
+                                <div className="text-[#ffff00]">RESOURCES:</div>
+                                <ul className="ml-5 text-[#e0e0e0] list-disc space-y-1">
+                                    {lore.resources.map((resource, idx) => (
+                                        <li key={idx}>{resource}</li>
+                                    ))}
+                                </ul>
+                                <div className="mt-2 text-[#e0e0e0]">{lore.description}</div>
+                                <div className="mt-2 text-[#ff00ff]">CLASSIFIED HISTORY:</div>
+                                <div className="ml-3 text-[#e0e0e0]">{lore.history}</div>
+                                <div className="mt-2 text-[#00ffff]">DOMINANT LIFE FORM:</div>
+                                <div className="ml-3 text-[#e0e0e0]">{lore.inhabitants}</div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="font-bold text-[#ffffff]">[ AWAITING SIMULATION DATA ]</div>
+                                <div className="text-[#ffff00]">READY TO GENERATE LORE</div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // ApiKeyModal Component
+        const ApiKeyModal = ({ isOpen, onSubmit }) => {
+            const [apiKey, setApiKey] = useState('');
+            const [errorMsg, setErrorMsg] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (apiKey.trim()) {
+                    globalApiKey = apiKey.trim();
+                    setErrorMsg('');
+                    onSubmit();
+                    setApiKey('');
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-[#000000] bg-opacity-75 flex items-center justify-center z-50">
+                    <div className="crt-border bg-[#050000] p-6 w-96 space-y-4">
+                        <h2 className="text-lg font-bold terminal-text">[ SYSTEM INITIALIZATION ]</h2>
+                        <p className="text-xs text-[#ffff00]">
+                            RED-SHIFT requires a Gemini API Key to generate planetary lore.
+                        </p>
+                        <p className="text-xs text-[#00ff00]">
+                            Get your free API key at: <br/>
+                            <strong>https://aistudio.google.com/app/apikey</strong>
+                        </p>
+                        {errorMsg && (
+                            <p className="text-xs text-[#ff6666] bg-[#1a0505] p-2 border border-[#ff3333]">
+                                {errorMsg}
+                            </p>
+                        )}
+                        <form onSubmit={handleSubmit} className="space-y-3">
+                            <input
+                                type="password"
+                                placeholder="Paste your Gemini API Key here..."
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                className="w-full bg-[#1a0505] border border-[#ff3333] text-[#ff3333] p-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#ff3333]"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!apiKey.trim()}
+                                className="w-full bg-[#ff3333] text-[#050000] p-2 text-xs font-bold hover:bg-[#ff6666] transition disabled:opacity-50"
+                            >
+                                ⬥ INITIALIZE SYSTEM
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [params, setParams] = useState(DEFAULT_PARAMS);
+            const [lore, setLore] = useState(null);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [showApiModal, setShowApiModal] = useState(!globalApiKey);
+            const [errorMsg, setErrorMsg] = useState('');
+
+            const handleGenerate = async () => {
+                if (!globalApiKey) {
+                    setShowApiModal(true);
+                    return;
+                }
+
+                setIsGenerating(true);
+                setLore(null);
+                setErrorMsg('');
+                try {
+                    const loreData = await generateRetroPlanetLore(params);
+                    setLore(loreData);
+                } catch (error) {
+                    console.error("Failed to generate system:", error);
+                    setErrorMsg(error.message);
+                    alert(`CRITICAL FAILURE: ${error.message}`);
+                } finally {
+                    setIsGenerating(false);
+                }
+            };
+
+            return (
+                <>
+                    <ApiKeyModal
+                        isOpen={showApiModal}
+                        onSubmit={() => setShowApiModal(false)}
+                    />
+                    
+                    <div className="h-screen w-screen flex flex-col md:flex-row gap-0 overflow-hidden">
+                        {/* Header */}
+                        <div className="md:hidden w-full border-b-2 border-[#ff3333] p-3 bg-[#050000] terminal-text flex-shrink-0">
+                            <div className="text-center font-bold text-[#ffffff]">RED-SHIFT ARCHITECT</div>
+                            <div className="text-center text-xs text-[#ffffff]">SYS.VER.666</div>
+                        </div>
+
+                        {/* Left Column: Controls */}
+                        <div className="w-full md:w-1/3 h-full md:border-r-2 border-[#ff3333] flex flex-col overflow-hidden">
+                            <div className="hidden md:flex border-b-2 border-[#ff3333] p-3 bg-[#050000] terminal-text flex-shrink-0 flex-col items-center">
+                                <div className="font-bold text-[#ffffff]">RED-SHIFT ARCHITECT</div>
+                                <div className="text-xs text-[#ffffff]">SYS.VER.666</div>
+                            </div>
+                            <Controls
+                                params={params}
+                                setParams={setParams}
+                                onGenerate={handleGenerate}
+                                isGenerating={isGenerating}
+                            />
+                        </div>
+
+                        {/* Right Column: Output */}
+                        <div className="hidden md:flex w-2/3 h-full flex-col overflow-hidden">
+                            <PlanetPreview
+                                lore={lore}
+                                params={params}
+                                isGenerating={isGenerating}
+                            />
+                        </div>
+                    </div>
+                </>
+            );
+        };
+
+        // ==================== MONTAJE ====================
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
