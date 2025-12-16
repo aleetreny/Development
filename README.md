@@ -51,33 +51,3 @@ A collection of high-performance web applications exploring the intersection of 
 * **Build Tool:** Vite
 * **Styling:** Tailwind CSS
 * **AI Model:** Google Gemini 2.5 Flash
-
-## How to Run
-
-Since this is a monorepo containing multiple independent applications, you must navigate to the specific project folder to run it.
-
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/aleetreny/Development.git](https://github.com/aleetreny/Development.git)
-    ```
-
-2.  **Navigate to a project (example):**
-    ```bash
-    cd star-synthesizer
-    # or
-    cd gravity-simulator
-    ```
-
-3.  **Install dependencies and start:**
-    ```bash
-    npm install
-    npm run dev
-    ```
-
-## Environment Variables
-
-Projects utilizing AI (Lumina, Fermi Paradox, Exo-Planet Builder) require a Google Gemini API Key.
-
-Create a .env file in the specific project root:
-```env
-API_KEY=your_google_gemini_api_key_here
