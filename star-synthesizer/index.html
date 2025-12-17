@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Synthesizer - Data Sonification Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- Icon Components (lucide-react replacement) ---
+        const IconActivity = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+        );
+
+        const IconVolume2 = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a7 7 0 0 1 0 9.9M21.7 7.04a11 11 0 0 1 0 15.5"></path>
+            </svg>
+        );
+
+        const IconVolumeX = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+        );
+
+        const IconThermometer = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 4v10.95a2 2 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path>
+            </svg>
+        );
+
+        const IconWeight = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="5" r="3"></circle>
+                <path d="M6.82 15.803a6 6 0 0 0 10.36 0"></path>
+                <path d="M12 13v8"></path>
+                <path d="M8 21h8"></path>
+                <path d="M4 9h16"></path>
+            </svg>
+        );
+
+        const IconZap = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+        );
+
+        const IconClock = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        );
+
+        const IconInfo = ({ className }) => (
+            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+        );
+
+        // --- Audio Utils ---
+        const createPinkNoise = (ctx) => {
+            const bufferSize = 4096 * 4;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            let b0, b1, b2, b3, b4, b5, b6;
+            b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                data[i] *= 0.11;
+                b6 = white * 0.115926;
+            }
+            return buffer;
+        };
+
+        const makeDistortionCurve = (amount) => {
+            const k = typeof amount === 'number' ? amount : 50;
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            for (let i = 0; i < n_samples; ++i) {
+                const x = (i * 2) / n_samples - 1;
+                curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+            }
+            return curve;
+        };
+
+        const kelvinToRgb = (k) => {
+            let temp = k / 100;
+            let r, g, b;
+            if (temp <= 66) {
+                r = 255;
+                g = temp;
+                g = 99.4708025861 * Math.log(g) - 161.1195681661;
+                if (temp <= 19) {
+                    b = 0;
+                } else {
+                    b = temp - 10;
+                    b = 138.5177312231 * Math.log(b) - 305.0447927307;
+                }
+            } else {
+                r = temp - 60;
+                r = 329.698727446 * Math.pow(r, -0.1332047592);
+                g = temp - 60;
+                g = 288.1221695283 * Math.pow(g, -0.0755148492);
+                b = 255;
+            }
+            return `rgb(${Math.max(0, Math.min(255, r))}, ${Math.max(0, Math.min(255, g))}, ${Math.max(0, Math.min(255, b))})`;
+        };
+
+        // --- Main App Component ---
+        function App() {
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [params, setParams] = useState({
+                temperature: 5778,
+                mass: 1.0,
+                metallicity: 0.02,
+                age: 4.6
+            });
+
+            const canvasRef = useRef(null);
+            const containerRef = useRef(null);
+            const audioContextRef = useRef(null);
+            const masterGainRef = useRef(null);
+            const shouldBePlayingRef = useRef(false);
+            const oscillatorRef = useRef(null);
+            const modulatorRef = useRef(null);
+            const modulatorGainRef = useRef(null);
+            const noiseNodeRef = useRef(null);
+            const noiseGainRef = useRef(null);
+            const noiseFilterRef = useRef(null);
+            const noiseDistortionRef = useRef(null);
+            const lfoRef = useRef(null);
+            const lfoGainRef = useRef(null);
+            const lfoPitchGainRef = useRef(null);
+            const animationFrameRef = useRef(0);
+            const particlesRef = useRef([]);
+
+            const initAudio = () => {
+                if (audioContextRef.current) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                audioContextRef.current = ctx;
+
+                const masterGain = ctx.createGain();
+                masterGain.gain.value = 0.0;
+                masterGain.connect(ctx.destination);
+                masterGainRef.current = masterGain;
+
+                const carrier = ctx.createOscillator();
+                carrier.type = 'sine';
+                carrier.connect(masterGain);
+                oscillatorRef.current = carrier;
+
+                const modulator = ctx.createOscillator();
+                modulator.type = 'sine';
+                const modulatorGain = ctx.createGain();
+                modulatorGain.gain.value = 0;
+                modulator.connect(modulatorGain);
+                modulatorGain.connect(carrier.frequency);
+                modulatorRef.current = modulator;
+                modulatorGainRef.current = modulatorGain;
+
+                const noiseBuffer = createPinkNoise(ctx);
+                const noiseNode = ctx.createBufferSource();
+                noiseNode.buffer = noiseBuffer;
+                noiseNode.loop = true;
+                const noiseFilter = ctx.createBiquadFilter();
+                noiseFilter.type = 'lowpass';
+                noiseFilter.frequency.value = 400;
+                const noiseDistortion = ctx.createWaveShaper();
+                noiseDistortion.curve = makeDistortionCurve(0);
+                noiseDistortion.oversample = '4x';
+                const noiseGain = ctx.createGain();
+                noiseGain.gain.value = 0;
+                noiseNode.connect(noiseFilter);
+                noiseFilter.connect(noiseDistortion);
+                noiseDistortion.connect(noiseGain);
+                noiseGain.connect(masterGain);
+                noiseNodeRef.current = noiseNode;
+                noiseFilterRef.current = noiseFilter;
+                noiseDistortionRef.current = noiseDistortion;
+                noiseGainRef.current = noiseGain;
+
+                const lfo = ctx.createOscillator();
+                lfo.type = 'sine';
+                const lfoGain = ctx.createGain();
+                lfoGain.gain.value = 0;
+                lfo.connect(lfoGain);
+                lfoGain.connect(masterGain.gain);
+                const lfoPitchGain = ctx.createGain();
+                lfoPitchGain.gain.value = 0;
+                lfo.connect(lfoPitchGain);
+                lfoPitchGain.connect(carrier.frequency);
+                lfoRef.current = lfo;
+                lfoGainRef.current = lfoGain;
+                lfoPitchGainRef.current = lfoPitchGain;
+
+                carrier.start();
+                modulator.start();
+                noiseNode.start();
+                lfo.start();
+            };
+
+            const updateAudioParams = useCallback(() => {
+                if (!audioContextRef.current || !oscillatorRef.current) return;
+                const ctx = audioContextRef.current;
+                const now = ctx.currentTime;
+                const rampTime = 0.1;
+
+                const minFreq = 65;
+                const maxFreq = 880;
+                const tRatio = (params.temperature - 2000) / (30000 - 2000);
+                const frequency = minFreq * Math.pow(maxFreq / minFreq, tRatio);
+                oscillatorRef.current.frequency.setTargetAtTime(frequency, now, rampTime);
+                
+                if (modulatorRef.current) {
+                    modulatorRef.current.frequency.setTargetAtTime(frequency * 2.0, now, rampTime);
+                }
+
+                if (noiseGainRef.current && noiseFilterRef.current && noiseDistortionRef.current) {
+                    const normalizedMass = params.mass / 50;
+                    const windVolume = Math.min(0.8, Math.pow(normalizedMass, 0.7) * 0.9);
+                    noiseGainRef.current.gain.setTargetAtTime(windVolume, now, 0.5);
+                    const filterFreq = 60 + Math.pow(normalizedMass, 0.6) * 12000;
+                    noiseFilterRef.current.frequency.setTargetAtTime(filterFreq, now, 0.5);
+                    const distortionAmount = Math.pow(normalizedMass, 1.2) * 400;
+                    noiseDistortionRef.current.curve = makeDistortionCurve(distortionAmount);
+                }
+
+                if (modulatorGainRef.current) {
+                    const modulationIndex = params.metallicity * 1200;
+                    modulatorGainRef.current.gain.setTargetAtTime(modulationIndex, now, rampTime);
+                }
+
+                if (lfoRef.current && lfoGainRef.current && lfoPitchGainRef.current) {
+                    let lfoRate, lfoDepth, pitchDepth;
+                    const stabilityThreshold = 5.0;
+                    const maxAge = 13.0;
+                    
+                    if (params.age <= stabilityThreshold) {
+                        const youthFactor = 1 - (params.age / stabilityThreshold);
+                        lfoRate = 0.5 + (youthFactor * 14.5);
+                        lfoDepth = youthFactor * 0.4;
+                        pitchDepth = youthFactor * 50;
+                    } else {
+                        const oldFactor = (params.age - stabilityThreshold) / (maxAge - stabilityThreshold);
+                        lfoRate = 0.5 - (oldFactor * 0.3);
+                        lfoDepth = oldFactor * 0.8;
+                        pitchDepth = oldFactor * 35;
+                    }
+
+                    lfoRef.current.frequency.setTargetAtTime(lfoRate, now, 0.2);
+                    lfoGainRef.current.gain.setTargetAtTime(lfoDepth, now, 0.2);
+                    lfoPitchGainRef.current.gain.setTargetAtTime(pitchDepth, now, 0.2);
+                }
+            }, [params]);
+
+            const toggleAudio = async () => {
+                if (!audioContextRef.current) {
+                    initAudio();
+                }
+
+                const ctx = audioContextRef.current;
+                if (!ctx) return;
+
+                if (isPlaying) {
+                    shouldBePlayingRef.current = false;
+                    setIsPlaying(false);
+                    if (masterGainRef.current) {
+                        const now = ctx.currentTime;
+                        masterGainRef.current.gain.cancelScheduledValues(now);
+                        masterGainRef.current.gain.setValueAtTime(masterGainRef.current.gain.value, now);
+                        masterGainRef.current.gain.linearRampToValueAtTime(0, now + 0.2);
+                    }
+                    setTimeout(async () => {
+                        if (!shouldBePlayingRef.current && ctx.state === 'running') {
+                            await ctx.suspend();
+                        }
+                    }, 250);
+                } else {
+                    shouldBePlayingRef.current = true;
+                    setIsPlaying(true);
+                    if (ctx.state === 'suspended') {
+                        await ctx.resume();
+                    }
+                    if (masterGainRef.current) {
+                        const now = ctx.currentTime;
+                        masterGainRef.current.gain.cancelScheduledValues(now);
+                        masterGainRef.current.gain.setValueAtTime(0, now);
+                        masterGainRef.current.gain.linearRampToValueAtTime(0.5, now + 0.8);
+                    }
+                }
+            };
+
+            useEffect(() => {
+                updateAudioParams();
+            }, [params, updateAudioParams]);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                if (particlesRef.current.length === 0) {
+                    for (let i = 0; i < 300; i++) {
+                        particlesRef.current.push({
+                            angle: Math.random() * Math.PI * 2,
+                            radius: 50 + Math.random() * 200,
+                            speed: 0,
+                            size: Math.random() * 2,
+                            alpha: Math.random(),
+                            trail: []
+                        });
+                    }
+                }
+
+                const render = () => {
+                    if (!canvas || !containerRef.current) return;
+                    const { clientWidth, clientHeight } = containerRef.current;
+                    if (canvas.width !== clientWidth || canvas.height !== clientHeight) {
+                        canvas.width = clientWidth;
+                        canvas.height = clientHeight;
+                    }
+
+                    const w = canvas.width;
+                    const h = canvas.height;
+                    const cx = w / 2;
+                    const cy = h / 2;
+
+                    ctx.fillStyle = '#020617';
+                    ctx.fillRect(0, 0, w, h);
+
+                    const baseRadius = 15 + (Math.log(params.mass * 10) * 35);
+                    const time = Date.now() / 1000;
+                    let pulseRate = 0;
+                    let pulseAmp = 0;
+                    const stabilityThreshold = 5.0;
+
+                    if (params.age <= stabilityThreshold) {
+                        const youthFactor = 1 - (params.age / stabilityThreshold);
+                        pulseRate = 0.5 + (youthFactor * 8);
+                        pulseAmp = 0.01 + (youthFactor * 0.08);
+                    } else {
+                        const oldFactor = (params.age - stabilityThreshold) / 8.0;
+                        pulseRate = 0.5 - (oldFactor * 0.3);
+                        pulseAmp = 0.01 + (oldFactor * 0.25);
+                    }
+
+                    const pulse = 1 + Math.sin(time * pulseRate * Math.PI * 2) * pulseAmp;
+                    const radius = baseRadius * pulse;
+                    const color = kelvinToRgb(params.temperature);
+
+                    const coronaSize = radius * (2 + (params.mass / 20));
+                    const glow = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, coronaSize);
+                    glow.addColorStop(0, color);
+                    glow.addColorStop(0.2, color);
+                    glow.addColorStop(0.5, 'rgba(0,0,0,0.1)');
+                    glow.addColorStop(1, 'transparent');
+
+                    ctx.globalCompositeOperation = 'screen';
+                    ctx.fillStyle = glow;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, coronaSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = color;
+                    ctx.shadowBlur = Math.min(100, radius * 2);
+                    ctx.shadowColor = color;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    const windSpeedBase = 0.002 + Math.pow(params.mass / 50, 0.8) * 0.15;
+                    particlesRef.current.forEach(p => {
+                        p.speed = windSpeedBase * (1 + Math.random() * 0.5);
+                        p.angle += p.speed;
+                        p.radius += 0.5 + (params.mass / 50) * 8;
+
+                        if (p.radius > Math.max(w, h) / 1.5) {
+                            p.radius = radius * 1.1;
+                            p.alpha = 0;
+                            p.trail = [];
+                        }
+
+                        if (p.alpha < 1 && p.radius < radius * 3) p.alpha += 0.05;
+
+                        const px = cx + Math.cos(p.angle) * p.radius;
+                        const py = cy + Math.sin(p.angle) * p.radius;
+
+                        p.trail.push({x: px, y: py});
+                        const maxTrail = 5 + (params.mass * 2);
+                        if (p.trail.length > maxTrail) p.trail.shift();
+
+                        if (p.trail.length > 1) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.trail[0].x, p.trail[0].y);
+                            for (let t of p.trail) ctx.lineTo(t.x, t.y);
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${p.alpha * 0.3})`;
+                            ctx.lineWidth = p.size;
+                            ctx.stroke();
+                        }
+
+                        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    animationFrameRef.current = requestAnimationFrame(render);
+                };
+
+                render();
+
+                return () => {
+                    cancelAnimationFrame(animationFrameRef.current);
+                };
+            }, [params]);
+
+            const handleParamChange = (key, value) => {
+                setParams(prev => ({ ...prev, [key]: value }));
+            };
+
+            const getSpectralType = () => {
+                if (params.temperature > 30000) return 'O5';
+                if (params.temperature > 10000) return 'B0';
+                if (params.temperature > 7500) return 'A0';
+                if (params.temperature > 6000) return 'F5';
+                if (params.temperature > 5200) return 'G2';
+                if (params.temperature > 3700) return 'K0';
+                return 'M5';
+            };
+
+            const getDynamicState = () => {
+                if (params.age < 2) return { text: 'UNSTABLE (PROTOSTAR)', color: 'text-yellow-400 animate-pulse' };
+                if (params.age > 8) return { text: 'GIANT PHASE (EXPANDED)', color: 'text-red-400 animate-pulse' };
+                return { text: 'MAIN SEQUENCE (STABLE)', color: 'text-green-400' };
+            };
+
+            const state = getDynamicState();
+
+            return (
+                <div className="flex flex-col h-screen w-full bg-slate-950 text-cyan-500 overflow-hidden font-mono">
+                    <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-6 py-2 sm:py-4 border-b border-cyan-900/50 bg-slate-900/50 backdrop-blur-sm z-10 gap-2 sm:gap-0">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <IconActivity className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse shrink-0" />
+                            <h1 className="text-sm sm:text-xl tracking-widest font-bold uppercase leading-tight">Star Synthesizer <span className="text-xs text-slate-500 ml-1 sm:ml-2 block sm:inline">DATA SONIFICATION ENGINE</span></h1>
+                        </div>
+                        <button
+                            onClick={toggleAudio}
+                            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded border transition-all duration-300 text-xs sm:text-sm ${isPlaying ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-transparent border-slate-700 text-slate-500 hover:border-cyan-800 hover:text-cyan-600' }`}
+                        >
+                            {isPlaying ? <IconVolume2 className="w-3 h-3 sm:w-4 sm:h-4" /> : <IconVolumeX className="w-3 h-3 sm:w-4 sm:h-4" />}
+                            <span className="hidden xs:inline">{isPlaying ? 'AUDIO ACTIVE' : 'START AUDIO'}</span>
+                            <span className="inline xs:hidden">{isPlaying ? 'ON' : 'START'}</span>
+                        </button>
+                    </header>
+
+                    <div className="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
+                        <main ref={containerRef} className="flex-1 bg-black relative flex flex-col order-2 lg:order-1 min-h-0">
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900/20 via-slate-950 to-black pointer-events-none"></div>
+                            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{backgroundImage: 'linear-gradient(rgba(34, 211, 238, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
+                            
+                            <div className="relative flex-1">
+                                <canvas ref={canvasRef} className="block w-full h-full" />
+                            </div>
+
+                            <div className="h-auto sm:h-32 bg-slate-950 border-t border-cyan-900/30 p-2 sm:p-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-[8px] sm:text-xs font-mono relative z-20">
+                                <div>
+                                    <h4 className="text-slate-500 mb-1">SPECTRAL TYPE</h4>
+                                    <div className="text-lg sm:text-xl text-white font-bold">{getSpectralType()}</div>
+                                </div>
+                                <div>
+                                    <h4 className="text-slate-500 mb-1">ACOUSTIC</h4>
+                                    <div className="text-cyan-300 text-[7px] sm:text-xs">OSC: {Math.round(65 * Math.pow(880/65, (params.temperature - 2000)/28000))} Hz</div>
+                                    <div className="text-pink-400 text-[7px] sm:text-xs">WIND: {(Math.min(1, params.mass/50) * 100).toFixed(0)}%</div>
+                                </div>
+                                <div>
+                                    <h4 className="text-slate-500 mb-1">STATE</h4>
+                                    <div className={`${state.color} text-[7px] sm:text-xs`}>{state.text}</div>
+                                </div>
+                                <div>
+                                    <h4 className="text-slate-500 mb-1">COMPOSITION</h4>
+                                    <div className="w-full bg-slate-900 h-1 sm:h-2 mt-1 sm:mt-2 rounded-full overflow-hidden">
+                                        <div className="h-full bg-cyan-500" style={{width: `${(1-params.metallicity)*100}%`}}></div>
+                                    </div>
+                                    <div className="flex justify-between mt-0.5 sm:mt-1 text-[7px]">
+                                        <span>H/He</span>
+                                        <span>Met</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!isPlaying && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+                                    <button
+                                        onClick={toggleAudio}
+                                        className="group relative px-6 sm:px-10 py-3 sm:py-5 bg-transparent overflow-hidden border border-cyan-500 text-cyan-400 font-bold tracking-[0.1em] sm:tracking-[0.2em] uppercase transition-all hover:bg-cyan-500/10 hover:shadow-[0_0_40px_rgba(34,211,238,0.3)] text-xs sm:text-base"
+                                    >
+                                        <span className="relative z-10 flex flex-col items-center gap-1 sm:gap-2">
+                                            <span>Initialize Synthesizer</span>
+                                            <span className="text-[9px] sm:text-[10px] tracking-normal normal-case opacity-70">Click to start</span>
+                                        </span>
+                                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent transition-transform duration-500"></div>
+                                    </button>
+                                </div>
+                            )}
+                        </main>
+
+                        <aside className="w-full lg:w-96 flex flex-col gap-3 sm:gap-6 p-3 sm:p-6 border-b lg:border-b-0 lg:border-l border-cyan-900/30 bg-slate-900/30 backdrop-blur overflow-y-auto z-10 order-1 lg:order-2 max-h-[50vh] lg:max-h-none">
+                            <div className="group border border-slate-800 p-2 sm:p-4 rounded bg-slate-900/40 hover:border-cyan-900/60 transition-colors">
+                                <div className="flex justify-between mb-2 gap-2">
+                                    <label className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-cyan-300">
+                                        <IconThermometer className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" /> Temperature
+                                    </label>
+                                    <span className="text-xs bg-slate-950 px-2 py-0.5 rounded text-cyan-200 border border-slate-800 whitespace-nowrap">{params.temperature} K</span>
+                                </div>
+                                <input
+                                    type="range" min="2000" max="30000" step="100" value={params.temperature}
+                                    onChange={(e) => handleParamChange('temperature', Number(e.target.value))}
+                                    className="w-full h-1 sm:h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2"
+                                />
+                                <div className="text-[8px] sm:text-[10px] text-slate-400 bg-slate-950/50 p-2 rounded flex gap-1 sm:gap-2 items-start">
+                                    <IconInfo className="w-2 h-2 sm:w-3 sm:h-3 mt-0.5 shrink-0" />
+                                    <p>Mapped to Base Frequency. Wien's Law.</p>
+                                </div>
+                            </div>
+
+                            <div className="group border border-slate-800 p-2 sm:p-4 rounded bg-slate-900/40 hover:border-cyan-900/60 transition-colors">
+                                <div className="flex justify-between mb-2 gap-2">
+                                    <label className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-cyan-300">
+                                        <IconWeight className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" /> Mass
+                                    </label>
+                                    <span className="text-xs bg-slate-950 px-2 py-0.5 rounded text-cyan-200 border border-slate-800 whitespace-nowrap">{params.mass} M☉</span>
+                                </div>
+                                <input
+                                    type="range" min="0.1" max="50" step="0.1" value={params.mass}
+                                    onChange={(e) => handleParamChange('mass', Number(e.target.value))}
+                                    className="w-full h-1 sm:h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2"
+                                />
+                                <div className="text-[8px] sm:text-[10px] text-slate-400 bg-slate-950/50 p-2 rounded flex gap-1 sm:gap-2 items-start">
+                                    <IconInfo className="w-2 h-2 sm:w-3 sm:h-3 mt-0.5 shrink-0" />
+                                    <p>Noise & Distortion. Massive stars = violent winds.</p>
+                                </div>
+                            </div>
+
+                            <div className="group border border-slate-800 p-2 sm:p-4 rounded bg-slate-900/40 hover:border-cyan-900/60 transition-colors">
+                                <div className="flex justify-between mb-2 gap-2">
+                                    <label className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-cyan-300">
+                                        <IconZap className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" /> Metallicity
+                                    </label>
+                                    <span className="text-xs bg-slate-950 px-2 py-0.5 rounded text-cyan-200 border border-slate-800 whitespace-nowrap">{params.metallicity.toFixed(3)}</span>
+                                </div>
+                                <input
+                                    type="range" min="0" max="1" step="0.001" value={params.metallicity}
+                                    onChange={(e) => handleParamChange('metallicity', Number(e.target.value))}
+                                    className="w-full h-1 sm:h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2"
+                                />
+                                <div className="text-[8px] sm:text-[10px] text-slate-400 bg-slate-950/50 p-2 rounded flex gap-1 sm:gap-2 items-start">
+                                    <IconInfo className="w-2 h-2 sm:w-3 sm:h-3 mt-0.5 shrink-0" />
+                                    <p>Timbre (FM Synthesis). Heavy elements modify spectrum.</p>
+                                </div>
+                            </div>
+
+                            <div className="group border border-slate-800 p-2 sm:p-4 rounded bg-slate-900/40 hover:border-cyan-900/60 transition-colors">
+                                <div className="flex justify-between mb-2 gap-2">
+                                    <label className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-cyan-300">
+                                        <IconClock className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" /> Age
+                                    </label>
+                                    <span className="text-xs bg-slate-950 px-2 py-0.5 rounded text-cyan-200 border border-slate-800 whitespace-nowrap">{params.age} Ga</span>
+                                </div>
+                                <input
+                                    type="range" min="0" max="13" step="0.1" value={params.age}
+                                    onChange={(e) => handleParamChange('age', Number(e.target.value))}
+                                    className="w-full h-1 sm:h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer mb-2"
+                                />
+                                <div className="text-[8px] sm:text-[10px] text-slate-400 bg-slate-950/50 p-2 rounded flex gap-1 sm:gap-2 items-start">
+                                    <IconInfo className="w-2 h-2 sm:w-3 sm:h-3 mt-0.5 shrink-0" />
+                                    <p>Stability (LFO & Vibrato). Youth chaos to giant pulsation.</p>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
