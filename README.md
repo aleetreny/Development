@@ -44,6 +44,16 @@ A collection of high-performance web applications exploring the intersection of 
 
 ---
 
+### Conceptual Experiments
+
+#### 6. [The Real Scroll](./infinite-scroll)
+**A 1:1 scale physical scrolling experiment.**
+* **Core Concept:** Distance is relative, until now. A digital ruler calibrated to ensure that 1 meter of digital depth corresponds exactly to 1 meter of physical scroll interaction.
+* **Tech:** Vanilla JS (Zero-Dependency), HTML5, CSS3.
+* **Key Feature:** Features an "Infinite Treadmill" engine to bypass browser pixel limits, dynamic biomes based on depth, and a hidden "Minus World" glitch mechanic.
+
+---
+
 ## Common Technical Stack
 
 * **Framework:** React 19 (Hooks based architecture)
