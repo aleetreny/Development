@@ -46,7 +46,7 @@ A collection of high-performance web applications exploring the intersection of 
 
 ### Conceptual Experiments
 
-#### 6. [The Real Scroll](./infinite-scroll)
+#### 6. [The Infinite Scroll](./infinite-scroll)
 **A 1:1 scale physical scrolling experiment.**
 * **Core Concept:** Distance is relative, until now. A digital ruler calibrated to ensure that 1 meter of digital depth corresponds exactly to 1 meter of physical scroll interaction.
 * **Tech:** Vanilla JS (Zero-Dependency), HTML5, CSS3.
